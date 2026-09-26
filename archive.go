@@ -157,7 +157,7 @@ loop:
 			if xattrs == nil {
 				xattrs = make(map[string]string)
 			}
-			xattrs[d.NameAndValue[0:idx]] = d.NameAndValue[idx:]
+			xattrs[d.NameAndValue[0:idx]] = d.NameAndValue[idx+1:]
 		case FormatSymlink:
 			if entry == nil {
 				return nil, InvalidFormat{}
@@ -185,7 +185,7 @@ loop:
 			// path.Dir, not filepath.Dir: node names are slash-separated
 			// (built with path.Join below) and have to stay that way on
 			// Windows too, where filepath.Dir would rewrite the separators.
-			a.dir = path.Dir(path.Dir(a.dir))
+			a.dir = path.Dir(a.dir)
 		case nil:
 			return nil, nil
 
@@ -195,7 +195,7 @@ loop:
 	}
 
 	// If it doesn't have a payload or is a device/symlink, it must be a directory
-	if payload == nil && device == nil {
+	if payload == nil && device == nil && symlink == nil {
 		a.dir = path.Join(a.dir, name)
 		if !confined(a.dir) {
 			return nil, InvalidFormat{Msg: fmt.Sprintf("entry %q escapes the archive root", a.dir)}
@@ -224,7 +224,7 @@ loop:
 			Mode:   entry.Mode,
 			MTime:  entry.MTime,
 			Xattrs: xattrs,
-			Size:   payload.Size - 15,
+			Size:   payload.Size - 16,
 			Data:   payload.Data,
 		}, nil
 	}
