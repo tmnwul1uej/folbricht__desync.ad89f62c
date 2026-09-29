@@ -167,7 +167,7 @@ func (s OCIIndexStore) StoreIndex(name string, idx Index) error {
 	blobDesc := ocispec.Descriptor{
 		MediaType: "application/octet-stream",
 		Digest:    digest.NewDigestFromBytes(digest.SHA256, h.Sum(nil)),
-		Size:      idx.Length(),
+		Size:      n,
 	}
 
 	if err := s.ensureConfigBlob(ctx); err != nil {
@@ -175,7 +175,7 @@ func (s OCIIndexStore) StoreIndex(name string, idx Index) error {
 	}
 
 	// Second pass, into the push.
-	if n < maxInMemoryIndex {
+	if n <= maxInMemoryIndex {
 		b := bytes.NewBuffer(make([]byte, 0, n))
 		if _, err := idx.WriteTo(b); err != nil {
 			return err
@@ -186,8 +186,8 @@ func (s OCIIndexStore) StoreIndex(name string, idx Index) error {
 	} else {
 		pr, pw := io.Pipe()
 		go func() {
-			_, _ = idx.WriteTo(pw)
-			pw.Close()
+			_, err := idx.WriteTo(pw)
+			pw.CloseWithError(err)
 		}()
 		err := s.repo.Blobs().Push(ctx, blobDesc, pr)
 		// Unblocks the writer if the push stopped reading early.
@@ -207,7 +207,7 @@ func (s OCIIndexStore) StoreIndex(name string, idx Index) error {
 			ocispec.AnnotationTitle:     name,
 			ociIndexChunksAnnotation:    strconv.Itoa(len(idx.Chunks)),
 			ociIndexBlobSizeAnnotation:  strconv.FormatInt(idx.Length(), 10),
-			ociIndexChunkSizeAnnotation: fmt.Sprintf("%d:%d:%d", idx.Index.ChunkSizeMax, idx.Index.ChunkSizeAvg, idx.Index.ChunkSizeMin),
+			ociIndexChunkSizeAnnotation: fmt.Sprintf("%d:%d:%d", idx.Index.ChunkSizeMin, idx.Index.ChunkSizeAvg, idx.Index.ChunkSizeMax),
 		},
 	}
 	mb, err := json.Marshal(manifest)
