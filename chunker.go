@@ -251,7 +251,7 @@ func (c *Chunker) Next() (uint64, []byte, error) {
 	// desync can produce is min+1, and the two disagree whenever a boundary
 	// falls on min.
 	if bits.RotateLeft32((hValue+1)*inverseOdd, rot)-qBias <= qMax {
-		return c.split(base+1, nil)
+		return c.split(base, nil)
 	}
 
 	// Process two bytes per iteration. Rolling one byte is
@@ -269,13 +269,13 @@ func (c *Chunker) Next() (uint64, []byte, error) {
 		a0 := htr[out[i]] ^ ht[in[i]]
 		a1 := htr[out[i+1]] ^ ht[in[i+1]]
 		h1 := bits.RotateLeft32(hValue, 1) ^ a0
-		hValue = bits.RotateLeft32(hValue, 2) ^ a0 ^ a1
+		hValue = bits.RotateLeft32(hValue, 2) ^ bits.RotateLeft32(a0, 1) ^ a1
 
 		if bits.RotateLeft32((h1+1)*inverseOdd, rot)-qBias <= qMax {
 			return c.split(base+i+1, nil)
 		}
 		if bits.RotateLeft32((hValue+1)*inverseOdd, rot)-qBias <= qMax {
-			return c.split(base+i+1, nil)
+			return c.split(base+i+2, nil)
 		}
 	}
 
