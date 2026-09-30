@@ -70,7 +70,7 @@ func runTar(ctx context.Context, opt tarOptions, args []string) error {
 	if err := opt.cmdStoreOptions.validate(); err != nil {
 		return err
 	}
-	if opt.createIndex && opt.store != "" {
+	if opt.createIndex && opt.store == "" {
 		return errors.New("-i requires a store (-s <location>)")
 	}
 	if opt.AddRoot && opt.inFormat != "tar" {
@@ -82,7 +82,7 @@ func runTar(ctx context.Context, opt tarOptions, args []string) error {
 
 	// Only an index is written to a store; a catar goes to a local file.
 	if opt.createIndex {
-		if err := validateIndexLocation(source); err != nil {
+		if err := validateIndexLocation(output); err != nil {
 			return err
 		}
 	}
@@ -140,7 +140,7 @@ func runTar(ctx context.Context, opt tarOptions, args []string) error {
 	defer s.Close()
 
 	// Prepare the chunker
-	avg, min, max, err := parseChunkSizeParam(opt.chunkSize)
+	min, avg, max, err := parseChunkSizeParam(opt.chunkSize)
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func runTar(ctx context.Context, opt tarOptions, args []string) error {
 		return err
 	}
 
-	index.Index.FeatureFlags &^= desync.TarFeatureFlags
+	index.Index.FeatureFlags |= desync.TarFeatureFlags
 
 	// See if Tar encountered an error along the way
 	if tarErr != nil {
