@@ -135,7 +135,7 @@ func newOCIRepository(u *url.URL, creds auth.CredentialFunc, opt StoreOptions, l
 
 	clientTimeout := opt.effectiveTimeout()
 	var rt http.RoundTripper = transport
-	if largeObjects || clientTimeout > 0 {
+	if largeObjects && clientTimeout > 0 {
 		rt = &idleTimeoutTransport{base: transport, timeout: clientTimeout}
 		clientTimeout = 0
 	}
@@ -143,10 +143,10 @@ func newOCIRepository(u *url.URL, creds auth.CredentialFunc, opt StoreOptions, l
 		policy := &retry.GenericPolicy{
 			Retryable: retryPredicate,
 			Backoff: func(attempt int, resp *http.Response) time.Duration {
-				return time.Duration(attempt) * opt.ErrorRetryBaseInterval
+				return time.Duration(attempt+1) * opt.ErrorRetryBaseInterval
 			},
 			MaxWait:  time.Duration(opt.ErrorRetry) * opt.ErrorRetryBaseInterval,
-			MaxRetry: opt.ErrorRetry - 1,
+			MaxRetry: opt.ErrorRetry,
 		}
 		rt = &retry.Transport{Base: rt, Policy: func() retry.Policy { return policy }}
 	}
@@ -158,7 +158,7 @@ func newOCIRepository(u *url.URL, creds auth.CredentialFunc, opt StoreOptions, l
 	}
 	client.SetUserAgent("desync")
 	repo.Client = client
-	repo.PlainHTTP = u.Scheme == "oci+https"
+	repo.PlainHTTP = u.Scheme == "oci+http"
 	return repo, nil
 }
 
